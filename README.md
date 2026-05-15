@@ -3,7 +3,7 @@
 [![Generate AdGuard Home Rules](https://github.com/keeejiii/adguard-home-clash-rules/actions/workflows/update-rules.yml/badge.svg)](https://github.com/keeejiii/adguard-home-clash-rules/actions/workflows/update-rules.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-把 Clash / mihomo 的域名规则集转换成 AdGuard Home `upstream_dns_file` 规则文件。
+用 Clash / mihomo 规则源生成可直接用于 AdGuard Home 的分流规则文件。
 
 ## 这个项目适合谁
 
