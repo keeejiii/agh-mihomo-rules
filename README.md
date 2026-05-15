@@ -1,27 +1,131 @@
-# agh-mihomo-rules
+# AdGuard Home mihomo DNS Rules
 
-把 mihomo / Clash 风格的 `.list`、`.yaml` 域名规则集转换成 AdGuard Home `upstream_dns_file` 规则。
+[![Generate AdGuard Home Rules](https://github.com/keeejiii/agh-mihomo-rules/actions/workflows/update-rules.yml/badge.svg)](https://github.com/keeejiii/agh-mihomo-rules/actions/workflows/update-rules.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-## 这个项目做什么
+把 mihomo / Clash 的域名规则集转换成 AdGuard Home `upstream_dns_file` 规则文件。
 
-支持把多个远程规则集按“规则组 → DNS 服务器”的方式合并输出。
+这个项目适合两类用法：
 
-每个规则组都可以：
+- **直接用作者当前生成好的规则文件**
+- **fork 后用 GitHub Actions Variables 生成你自己的分流规则**
 
-- 绑定多个规则集 URL
-- 绑定多个 DNS server
-- 按你声明的组顺序决定优先级
+当前能力：
 
-当前只支持两类输入：
+- 支持远程 `.list` / `.yaml` / `.yml`
+- 支持多个规则组，每组可绑定多个规则集 URL 和多个 DNS upstream
+- `RULESET_NAMES` 的顺序就是优先级顺序
+- `DOMAIN` 和 `DOMAIN-SUFFIX` 当前统一输出成 `[/example.com/]...`
+- 只有当产物变化时才更新 latest release
+- 每天北京时间 **06:15** 左右自动运行一次
 
-- `.list`
-- `.yaml` / `.yml`
+## 直接使用
 
-## 支持的规则
+### 1) 下载 latest release
+
+```bash
+mkdir -p /opt/AdGuardHome
+curl -L https://github.com/keeejiii/agh-mihomo-rules/releases/latest/download/agh-mihomo-rules.txt -o /opt/AdGuardHome/agh-mihomo-rules.txt
+```
+
+直链：<https://github.com/keeejiii/agh-mihomo-rules/releases/latest/download/agh-mihomo-rules.txt>
+
+### 2) 在 AdGuard Home 里引用
+
+```yaml
+dns:
+  upstream_dns_file: /opt/AdGuardHome/agh-mihomo-rules.txt
+```
+
+> 如果你想要的是“作者当前这份规则”，到这里就够了。
+
+## 自定义生成
+
+如果你想把自己的 mihomo / Clash 域名规则集转换成 AdGuard Home 规则，建议 fork 本仓库后配置 GitHub Actions Variables。
+
+仓库页面路径：
+
+**Settings → Secrets and variables → Actions → Variables**
+
+### 变量约定
+
+统一使用 **全大写变量名**：
+
+- `RULESET_NAMES`
+- `DOMAIN_<NAME>`
+- `DNS_<NAME>`
+- `DEFAULT_DNS`
+
+这样最清楚，也避免 GitHub 页面把变量名显示成大写后产生歧义。
+
+### 最短配置示例
+
+```text
+RULESET_NAMES=GOOGLE,MICROSOFT
+
+DOMAIN_GOOGLE=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Google/Google.list
+DNS_GOOGLE=https://dns.google/dns-query https://cloudflare-dns.com/dns-query
+
+DOMAIN_MICROSOFT=https://github.com/blackmatrix7/ios_rule_script/blob/master/rule/Clash/Microsoft/Microsoft.yaml
+DNS_MICROSOFT=h3://dns.alidns.com/dns-query quic://dns.alidns.com
+
+DEFAULT_DNS=https://cloudflare-dns.com/dns-query
+https://dns.google/dns-query
+```
+
+### 每个变量怎么写
+
+#### `RULESET_NAMES`
+
+```text
+RULESET_NAMES=GOOGLE,MICROSOFT
+```
+
+- 决定规则组优先级顺序
+- 前面的组优先，后面的组补充
+- 建议始终显式填写
+- 如果不填，workflow 会尝试从已成对的 `DOMAIN_*` + `DNS_*` 自动推断
+
+#### `DOMAIN_<NAME>`
+
+```text
+DOMAIN_GOOGLE=https://example.com/a.yaml
+https://example.com/b.list
+```
+
+- 一行一个规则集 URL
+- 支持 `.list` / `.yaml` / `.yml` 混合
+- 支持 `raw.githubusercontent.com/...`
+- 也兼容普通 GitHub `blob` 链接，workflow 会自动转成 raw 下载地址
+
+#### `DNS_<NAME>`
+
+```text
+DNS_GOOGLE=https://dns.google/dns-query https://cloudflare-dns.com/dns-query
+```
+
+- 对应规则组命中后使用的 DNS upstream
+- 支持多个 DNS server
+- 可以写成空格分隔，也可以分多行写
+- 最终输出时会合并成 AdGuard Home 支持的同一行空格分隔格式
+
+#### `DEFAULT_DNS`
+
+```text
+DEFAULT_DNS=https://cloudflare-dns.com/dns-query
+https://dns.google/dns-query
+```
+
+- 可选
+- 会写在输出文件最前面，作为默认 upstream
+- `DEFAULT_DNS` 会按空白拆分，**最终一行一个 upstream**
+- 这个拆分规则只对 `DEFAULT_DNS` 生效；域名匹配规则里的多个 DNS 仍保留在同一行
+
+## 支持的输入规则
 
 ### `.list`
 
-只提取：
+当前会提取这些形式：
 
 - `example.com`
 - `+.example.com`
@@ -30,25 +134,51 @@
 
 其他格式忽略。
 
-### `.yaml`
+### `.yaml` / `.yml`
 
-只提取：
+当前会提取：
 
 - `DOMAIN,example.com`
 - `DOMAIN-SUFFIX,example.com`
 
-无论规则后面有没有策略名，例如：
+例如：
 
 ```yaml
 - DOMAIN,example.com,DIRECT
 - DOMAIN-SUFFIX,google.com,Proxy
 ```
 
-都会正确提取域名部分。
+会只提取域名部分。
 
-## 优先级规则
+## 输出规则说明
 
-优先级由 `RULESET_NAMES` 里的顺序决定。
+输出是 AdGuard Home 的 `upstream_dns_file` 格式。
+
+示例：
+
+```text
+https://cloudflare-dns.com/dns-query
+https://dns.google/dns-query
+[/google.com/]https://dns.google/dns-query https://cloudflare-dns.com/dns-query
+[/microsoft.com/]h3://dns.alidns.com/dns-query quic://dns.alidns.com
+```
+
+含义：
+
+- 前两行是 `DEFAULT_DNS`
+- 后面每一行是“域名匹配 → 对应 DNS upstream”
+- `[/example.com/]...` 会匹配根域和子域
+
+当前版本里：
+
+- `DOMAIN-SUFFIX,example.com` → `[/example.com/]...`
+- `DOMAIN,example.com` → `[/example.com/]...`
+
+也就是说，当前**不再生成** `[/*.example.com/]#` 这种回退规则。
+
+## 冲突与优先级
+
+优先级由 `RULESET_NAMES` 的顺序决定。
 
 例如：
 
@@ -56,153 +186,38 @@
 RULESET_NAMES=GOOGLE,MICROSOFT
 ```
 
-表示：
+表示 `GOOGLE` 优先，`MICROSOFT` 次之。
 
-1. `GOOGLE` 优先
-2. `MICROSOFT` 次之
+如果多个规则组里出现同一个域名：
 
-### 冲突处理
+- 前面的规则组优先
+- 后面的同域名规则会被忽略
 
-- 同一个域名的 `DOMAIN` / 精确规则冲突：先出现的规则组优先
-- 同一个域名的 `DOMAIN-SUFFIX` / 后缀规则冲突：先出现的规则组优先
-- 如果不同规则组里出现同一个域名，先出现的规则组优先，后面的同域名规则忽略
-
-当前版本里，`DOMAIN` 和 `DOMAIN-SUFFIX` 都按同一套域名后缀规则输出，不再额外区分精确匹配与子域名匹配。
-
-## GitHub Actions 变量配置
-
-### 最短记法
-
-你只要记这一套：
-
-- `RULESET_NAMES=GOOGLE,MICROSOFT`
-- `DOMAIN_GOOGLE` → 填 Google 规则集 URL
-- `DNS_GOOGLE` → 填 Google 对应 DNS
-- `DOMAIN_MICROSOFT` → 填 Microsoft 规则集 URL
-- `DNS_MICROSOFT` → 填 Microsoft 对应 DNS
-- `DEFAULT_DNS` → 填默认 DNS
-
-> GitHub 页面本身就倾向把 Variables 显示成大写，所以当前版本统一按**全大写变量名**约定处理，最清楚，也最不容易歧义。
-
-GitHub Variables 不支持变量名里带冒号，所以这里统一使用**全大写变量名**：
-
-### 必填变量
-
-#### 1) 规则组顺序
-
-```text
-RULESET_NAMES=GOOGLE,MICROSOFT
-```
-
-- 推荐填写
-- 它决定规则组优先级顺序
-- 如果不填，workflow 会自动从已配置的 `DOMAIN_*` + `DNS_*` 配对里推断规则组，并按名称字母序作为顺序；**能跑，但不建议长期依赖**
-- `RULESET_NAMES` 本身大小写兼容，但为了避免歧义，建议你也统一写大写
-
-#### 2) 每个规则组的域名规则集 URL
-
-```text
-DOMAIN_GOOGLE=https://example.com/a.yaml
-https://example.com/b.list
-
-DOMAIN_MICROSOFT=https://example.com/c.yaml
-```
-
-- 一行一个 URL
-- 可以 `.yaml` 和 `.list` 混合
-- 支持 `raw.githubusercontent.com/...` 链接
-- 也兼容普通 GitHub blob 链接，workflow 运行时会自动转成 raw 下载地址
-
-#### 3) 每个规则组对应的 DNS
-
-```text
-DNS_GOOGLE=https://dns.google/dns-query https://cloudflare-dns.com/dns-query
-DNS_MICROSOFT=h3://dns.alidns.com/dns-query quic://dns.alidns.com https://doh.pub/dns-query
-```
-
-- 支持多个 DNS server
-- 可以写成空格分隔，也可以分多行写，最终都会合并成 AdGuard Home 支持的空格分隔格式
-
-#### 4) 可选默认 DNS
-
-```text
-DEFAULT_DNS=https://cloudflare-dns.com/dns-query
-https://dns.google/dns-query
-```
-
-- 可选；不填也能生成
-- 填了以后，会写在输出文件最前面，作为未命中域名规则时的默认 upstream
-- `DEFAULT_DNS` 会按空白分隔拆成多个 upstream，**最终总是一行一个**
-- 也就是说：
-  - 你在变量里分两行写 → 输出两行
-  - 你在变量里同一行空格分隔写多个 upstream → 输出也会拆成多行
-- 这个规则只对 `DEFAULT_DNS` 生效；域名匹配规则里的多个 DNS 仍保持同一行
-
-## 输出规则说明
-
-输出是 AdGuard Home 的 `upstream_dns_file` 规则。
-
-示例：
-
-```text
-[/example.com/]https://dns.google/dns-query
-```
-
-说明：
-
-- `[/example.com/]...`：匹配根域和子域
-
-所以现在：
-
-- `DOMAIN-SUFFIX,example.com` 会转成：`[/example.com/]...`
-- `DOMAIN,example.com` 也会直接转成：`[/example.com/]...`
-
-也就是说，当前输出不再生成 `[/*.example.com/]#` 这类回退规则。
-
-## 使用方式
-
-工作流会自动生成：
-
-- `converted/agh-mihomo-rules.txt`
-- latest release 附件同名文件
-
-在 `AdGuardHome.yaml` 里引用：
-
-```yaml
-dns:
-  upstream_dns_file: /path/to/agh-mihomo-rules.txt
-```
-
-如果你配置了 `DEFAULT_DNS`，输出文件前几行就会直接带默认 upstream；如果不配，默认 upstream 继续由 AdGuard Home 主配置决定。
-
-## 当前工作流做什么
+## 工作流会做什么
 
 1. 读取 `RULESET_NAMES`
-2. 读取每个 `DOMAIN_<NAME>` / `DNS_<NAME>`
+2. 读取每组 `DOMAIN_<NAME>` / `DNS_<NAME>`
 3. 下载所有规则集
 4. 提取支持的域名规则
-5. 合并并生成 `agh-mihomo-rules.txt`
-6. 仅在产物变化时更新 latest release
-
-## 示例规则集
-
-- `https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/ChinaMax/ChinaMax_Classical.yaml`
+5. 合并生成 `converted/agh-mihomo-rules.txt`
+6. 仅在输出变化时更新 latest release
 
 ## 设计边界
 
-当前最初版刻意只做这些：
+当前版本刻意只做这些：
 
-- 只支持远程 `.list` / `.yaml` / `.yml`
-- 只提取 `DOMAIN` 和 `DOMAIN-SUFFIX` 相关规则
-- `DOMAIN` 当前按 `DOMAIN-SUFFIX` 处理，不再保留“仅精确域名”的额外回退语义
-- 不做旧项目那种 `.cn` 子域名裁剪
-- 不按“中国/国外”内置固定 DNS 模板处理
-- 默认 DNS 只通过可选变量 `DEFAULT_DNS` 注入，不做内置预设
-- 不引入额外的复杂配置文件格式
+- 只处理域名类规则
+- 只提取 `DOMAIN` 和 `DOMAIN-SUFFIX`
+- `DOMAIN` 当前按 `DOMAIN-SUFFIX` 处理
+- 不做旧项目那种 `.cn` 子域裁剪
+- 不内置“中国 / 国外”固定 DNS 模板
+- 默认 DNS 只通过 `DEFAULT_DNS` 注入
+- 不引入额外复杂配置文件格式
 
-如果后面要扩展，再加：
+## 第三方声明
 
-- 本地配置文件模式
-- 更多 mihomo 规则类型
-- 产物命名可配置
-- 更详细的统计和调试输出
+本项目代码采用 MIT License。
+
+规则生成涉及第三方规则数据以及不同许可证来源。重新分发前，请自行审查上游许可证与使用条件。
+
+详见 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)。
