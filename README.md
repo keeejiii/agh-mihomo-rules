@@ -75,10 +75,13 @@ dns:
 RULESET_NAMES=GOOGLE,MICROSOFT
 ```
 
-- 决定规则组优先级顺序
+- 用来显式控制规则组优先级顺序
 - 前面的组优先，后面的组补充
-- 建议始终显式填写
-- 如果不填，workflow 会尝试从已成对的 `DOMAIN_*` + `DNS_*` 自动推断
+- **这是可选项**，不写也不一定会失败
+- 如果不填，workflow 会从已成对且非空的 `DOMAIN_*` + `DNS_*` 自动推断可用规则组
+- 自动推断时，顺序按变量名排序，不按你创建变量的先后顺序
+- 如果你有明确的优先级排序需求，建议显式填写 `RULESET_NAMES`
+- 只有在既没写 `RULESET_NAMES`，又找不到任何成对可用的 `DOMAIN_*` + `DNS_*` 时，workflow 才会报错
 
 #### `DOMAIN_<NAME>`
 
