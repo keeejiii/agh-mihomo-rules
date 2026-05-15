@@ -12,7 +12,7 @@
 
 ## 5 秒看懂
 
-- 输入：mihomo / Clash 的 `.list`、`.yaml`、`.yml` 域名规则
+- 输入：mihomo / Clash 的 `.list`、`.yaml` 域名规则
 - 输出：AdGuard Home `upstream_dns_file`
 - 多组规则支持：`RULESET_NAMES` 控制优先级
 - 变量约定：统一使用 **全大写** `RULESET_NAMES`、`DOMAIN_<NAME>`、`DNS_<NAME>`、`DEFAULT_DNS`
@@ -108,7 +108,7 @@ https://example.com/b.list
 ```
 
 - 一行一个规则集 URL
-- 支持 `.list` / `.yaml` / `.yml` 混合
+- 支持 `.list` / `.yaml` 混合
 - 支持 `raw.githubusercontent.com/...`
 - 也兼容普通 GitHub `blob` 链接，workflow 会自动转成 raw 下载地址
 
@@ -148,7 +148,7 @@ https://dns.google/dns-query
 
 其他格式忽略。
 
-### `.yaml` / `.yml`
+### `.yaml`
 
 当前会提取：
 

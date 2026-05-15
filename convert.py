@@ -159,9 +159,9 @@ def source_kind(source: str) -> str:
     path = urllib.parse.urlparse(source).path.lower()
     if path.endswith('.list'):
         return 'list'
-    if path.endswith('.yaml') or path.endswith('.yml'):
+    if path.endswith('.yaml'):
         return 'yaml'
-    raise ValidationError(f'Unsupported source type for {source}. Only .list, .yaml, and .yml are supported.')
+    raise ValidationError(f'Unsupported source type for {source}. Only .list and .yaml are supported.')
 
 
 
