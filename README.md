@@ -71,7 +71,9 @@ ruleset_names=google,microsoft
 
 ## GitHub Actions 变量配置
 
-GitHub Variables 不支持变量名里带冒号，所以这里改成下面这套。当前版本统一使用**小写变量名**：
+GitHub Variables 不支持变量名里带冒号，所以这里改成下面这套。当前版本统一使用**小写命名约定**：
+
+> 注意：GitHub 页面里你就算输入 `domain_google`，它也可能自动显示成 `DOMAIN_GOOGLE`。这不是问题；workflow 会先把 GitHub 提供的变量名统一转成小写再匹配。
 
 ### 必填变量
 

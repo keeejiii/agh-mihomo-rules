@@ -38,7 +38,8 @@ jobs:
           import os
           import uuid
 
-          variables = json.loads(os.environ.get('ALL_VARS_JSON') or '{}')
+          raw_variables = json.loads(os.environ.get('ALL_VARS_JSON') or '{}')
+          variables = {str(key).lower(): value for key, value in raw_variables.items()}
 
           ruleset_names = (variables.get('ruleset_names') or '').strip()
           if not ruleset_names:
