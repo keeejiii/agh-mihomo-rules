@@ -30,22 +30,17 @@ jobs:
       - name: Export repository variables for configured rulesets
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          ALL_VARS_JSON: ${{ toJSON(vars) }}
         run: |
           set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/actions/variables" --paginate --slurp > variables.json
           python - <<'PY'
           import json
           import os
           import uuid
 
-          payloads = json.load(open('variables.json', 'r', encoding='utf-8'))
-          variables = {}
-          for payload in payloads:
-              for item in payload.get('variables', []):
-                  variables[item['name']] = item['value']
+          variables = json.loads(os.environ.get('ALL_VARS_JSON') or '{}')
 
-          ruleset_names = variables.get('RULESET_NAMES', '').strip()
+          ruleset_names = (variables.get('RULESET_NAMES') or '').strip()
           if not ruleset_names:
               raise SystemExit('Missing repository variable: RULESET_NAMES')
 
@@ -58,7 +53,7 @@ jobs:
                   needed.append(name)
 
           add('RULESET_NAMES')
-          if 'DEFAULT_DNS' in variables:
+          if 'DEFAULT_DNS' in variables and (variables.get('DEFAULT_DNS') or '').strip():
               add('DEFAULT_DNS')
 
           for token in ruleset_names.replace(',', ' ').split():
@@ -66,7 +61,7 @@ jobs:
               add(f'DOMAIN_{upper}')
               add(f'DNS_{upper}')
 
-          missing = [name for name in needed if name != 'DEFAULT_DNS' and name not in variables]
+          missing = [name for name in needed if name != 'DEFAULT_DNS' and not (variables.get(name) or '').strip()]
           if missing:
               raise SystemExit('Missing repository variables: ' + ', '.join(missing))
 
