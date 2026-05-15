@@ -8,7 +8,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
-OUTPUT_FILE = 'agh-mihomo-rules.txt'
+OUTPUT_FILE = 'adguard-home-clash-rules.txt'
 HTML_LIKE_PREFIXES = (
     '<!doctype html',
     '<html',
@@ -126,7 +126,7 @@ def fetch_text(source: str) -> str:
     source = normalize_source(source)
     parsed = urllib.parse.urlparse(source)
     if parsed.scheme in ('http', 'https'):
-        request = urllib.request.Request(source, headers={'User-Agent': 'agh-mihomo-rules/0.1'})
+        request = urllib.request.Request(source, headers={'User-Agent': 'adguard-home-clash-rules/0.1'})
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
                 charset = response.headers.get_content_charset() or 'utf-8'

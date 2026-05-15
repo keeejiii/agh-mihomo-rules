@@ -103,10 +103,10 @@ jobs:
               echo 'Conversion summary was not generated.'
             fi
             echo
-            if [ -f converted/agh-mihomo-rules.txt ]; then
-              echo '- Output file: converted/agh-mihomo-rules.txt'
-              echo "- Output bytes: $(wc -c < converted/agh-mihomo-rules.txt)"
-              echo "- Output lines: $(wc -l < converted/agh-mihomo-rules.txt)"
+            if [ -f converted/adguard-home-clash-rules.txt ]; then
+              echo '- Output file: converted/adguard-home-clash-rules.txt'
+              echo "- Output bytes: $(wc -c < converted/adguard-home-clash-rules.txt)"
+              echo "- Output lines: $(wc -l < converted/adguard-home-clash-rules.txt)"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -114,8 +114,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -s converted/agh-mihomo-rules.txt
-          wc -l converted/agh-mihomo-rules.txt
+          test -s converted/adguard-home-clash-rules.txt
+          wc -l converted/adguard-home-clash-rules.txt
 
       - name: Download current latest release asset
         id: previous
@@ -125,7 +125,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p previous-release
-          if gh release download latest --pattern agh-mihomo-rules.txt --dir previous-release --repo "$GITHUB_REPOSITORY"; then
+          if gh release download latest --pattern adguard-home-clash-rules.txt --dir previous-release --repo "$GITHUB_REPOSITORY"; then
             echo 'found=true' >> "$GITHUB_OUTPUT"
           else
             echo 'No previous latest release asset found.'
@@ -137,12 +137,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ ! -f previous-release/agh-mihomo-rules.txt ]; then
+          if [ ! -f previous-release/adguard-home-clash-rules.txt ]; then
             echo 'changed=true' >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          if cmp -s previous-release/agh-mihomo-rules.txt converted/agh-mihomo-rules.txt; then
+          if cmp -s previous-release/adguard-home-clash-rules.txt converted/adguard-home-clash-rules.txt; then
             echo 'changed=false' >> "$GITHUB_OUTPUT"
           else
             echo 'changed=true' >> "$GITHUB_OUTPUT"
@@ -163,8 +163,8 @@ jobs:
           cat > release-notes.md <<EOF
           Auto-generated AdGuard Home rules converted from mihomo domain rulesets.
 
-          File: agh-mihomo-rules.txt
-          Download: https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/agh-mihomo-rules.txt
+          File: adguard-home-clash-rules.txt
+          Download: https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/adguard-home-clash-rules.txt
           Use with: dns.upstream_dns_file
 
           Summary:
@@ -176,8 +176,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: agh-mihomo-rules
+          name: adguard-home-clash-rules
           body_path: release-notes.md
-          files: converted/agh-mihomo-rules.txt
+          files: converted/adguard-home-clash-rules.txt
           overwrite_files: true
           make_latest: true

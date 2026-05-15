@@ -1,9 +1,9 @@
-# AdGuard Home mihomo DNS Rules
+# AdGuard Home Clash Rules
 
-[![Generate AdGuard Home Rules](https://github.com/keeejiii/agh-mihomo-rules/actions/workflows/update-rules.yml/badge.svg)](https://github.com/keeejiii/agh-mihomo-rules/actions/workflows/update-rules.yml)
+[![Generate AdGuard Home Rules](https://github.com/keeejiii/adguard-home-clash-rules/actions/workflows/update-rules.yml/badge.svg)](https://github.com/keeejiii/adguard-home-clash-rules/actions/workflows/update-rules.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-把 mihomo / Clash 的域名规则集转换成 AdGuard Home `upstream_dns_file` 规则文件。
+把 Clash / mihomo 的域名规则集转换成 AdGuard Home `upstream_dns_file` 规则文件。
 
 ## 这个项目适合谁
 
@@ -12,7 +12,7 @@
 
 ## 5 秒看懂
 
-- 输入：mihomo / Clash 的 `.list`、`.yaml` 域名规则
+- 输入：Clash / mihomo 的 `.list`、`.yaml` 域名规则
 - 输出：AdGuard Home `upstream_dns_file`
 - 多组规则支持：`RULESET_NAMES` 控制优先级
 - 变量约定：统一使用 **全大写** `RULESET_NAMES`、`DOMAIN_<NAME>`、`DNS_<NAME>`、`DEFAULT_DNS`
@@ -39,23 +39,23 @@ https://dns.google/dns-query
 
 ```bash
 mkdir -p /opt/AdGuardHome
-curl -L https://github.com/keeejiii/agh-mihomo-rules/releases/latest/download/agh-mihomo-rules.txt -o /opt/AdGuardHome/agh-mihomo-rules.txt
+curl -L https://github.com/keeejiii/adguard-home-clash-rules/releases/latest/download/adguard-home-clash-rules.txt -o /opt/AdGuardHome/adguard-home-clash-rules.txt
 ```
 
-直链：<https://github.com/keeejiii/agh-mihomo-rules/releases/latest/download/agh-mihomo-rules.txt>
+直链：<https://github.com/keeejiii/adguard-home-clash-rules/releases/latest/download/adguard-home-clash-rules.txt>
 
 ### 2) 在 AdGuard Home 里引用
 
 ```yaml
 dns:
-  upstream_dns_file: /opt/AdGuardHome/agh-mihomo-rules.txt
+  upstream_dns_file: /opt/AdGuardHome/adguard-home-clash-rules.txt
 ```
 
 > 如果你只是想直接使用仓库当前发布的规则文件，到这里就够了。
 
 ## 自定义生成
 
-如果你想把自己的 mihomo / Clash 域名规则集转换成 AdGuard Home 规则，建议 fork 本仓库后配置 GitHub Actions Variables。
+如果你想把自己的 Clash / mihomo 域名规则集转换成 AdGuard Home 规则，建议 fork 本仓库后配置 GitHub Actions Variables。
 
 仓库页面路径：
 
@@ -193,7 +193,7 @@ RULESET_NAMES=GOOGLE,MICROSOFT
 2. 读取每组 `DOMAIN_<NAME>` / `DNS_<NAME>`
 3. 下载所有规则集
 4. 提取支持的域名规则
-5. 合并生成 `converted/agh-mihomo-rules.txt`
+5. 合并生成 `converted/adguard-home-clash-rules.txt`
 6. 仅在输出变化时更新 latest release
 
 ## 设计边界
