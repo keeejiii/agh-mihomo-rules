@@ -63,10 +63,23 @@ def load_group_names() -> list[str]:
         seen.add(normalized)
         names.append(name)
 
-    if not names:
-        raise ValidationError('RULESET_NAMES is required, for example: GOOGLE,MICROSOFT')
+    if names:
+        return names
 
-    return names
+    inferred = sorted({
+        key[len('DOMAIN_'):]
+        for key, value in os.environ.items()
+        if key.startswith('DOMAIN_')
+        and value.strip()
+        and os.environ.get(f"DNS_{key[len('DOMAIN_'):]}", '').strip()
+    })
+    if inferred:
+        return inferred
+
+    raise ValidationError(
+        'RULESET_NAMES is not set, and no usable DOMAIN_* + DNS_* pairs were found. '
+        'Set RULESET_NAMES explicitly or provide matching DOMAIN_<NAME> and DNS_<NAME> variables.'
+    )
 
 
 def split_non_empty_lines(raw: str) -> list[str]:

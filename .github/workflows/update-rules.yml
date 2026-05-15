@@ -51,7 +51,7 @@ jobs:
               if not inferred:
                   raise SystemExit('Missing repository variable: RULESET_NAMES')
               ruleset_names = ','.join(name.lower() for name in inferred)
-              print(f'RULESET_NAMES not set; inferred order: {ruleset_names}')
+              print(f'RULESET_NAMES not set; inferred traversal order: {ruleset_names}')
               variables['RULESET_NAMES'] = ruleset_names
 
           needed = []
@@ -176,7 +176,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: adguard-home-clash-rules
+          name: AdGuard-Home-Clash-Rules
           body_path: release-notes.md
           files: converted/adguard-home-clash-rules.txt
           overwrite_files: true
