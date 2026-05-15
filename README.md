@@ -48,18 +48,18 @@
 
 ## 优先级规则
 
-优先级由 `ruleset_names` 里的顺序决定。
+优先级由 `RULESET_NAMES` 里的顺序决定。
 
 例如：
 
 ```text
-ruleset_names=google,microsoft
+RULESET_NAMES=GOOGLE,MICROSOFT
 ```
 
 表示：
 
-1. `google` 优先
-2. `microsoft` 次之
+1. `GOOGLE` 优先
+2. `MICROSOFT` 次之
 
 ### 冲突处理
 
@@ -71,29 +71,41 @@ ruleset_names=google,microsoft
 
 ## GitHub Actions 变量配置
 
-GitHub Variables 不支持变量名里带冒号，所以这里改成下面这套。当前版本统一使用**小写命名约定**：
+### 最短记法
 
-> 注意：GitHub 页面里你就算输入 `domain_google`，它也可能自动显示成 `DOMAIN_GOOGLE`。这不是问题；workflow 会先把 GitHub 提供的变量名统一转成小写再匹配。
+你只要记这一套：
+
+- `RULESET_NAMES=GOOGLE,MICROSOFT`
+- `DOMAIN_GOOGLE` → 填 Google 规则集 URL
+- `DNS_GOOGLE` → 填 Google 对应 DNS
+- `DOMAIN_MICROSOFT` → 填 Microsoft 规则集 URL
+- `DNS_MICROSOFT` → 填 Microsoft 对应 DNS
+- `DEFAULT_DNS` → 填默认 DNS
+
+> GitHub 页面本身就倾向把 Variables 显示成大写，所以当前版本统一按**全大写变量名**约定处理，最清楚，也最不容易歧义。
+
+GitHub Variables 不支持变量名里带冒号，所以这里统一使用**全大写变量名**：
 
 ### 必填变量
 
 #### 1) 规则组顺序
 
 ```text
-ruleset_names=google,microsoft
+RULESET_NAMES=GOOGLE,MICROSOFT
 ```
 
 - 推荐填写
 - 它决定规则组优先级顺序
-- 如果不填，workflow 会自动从已配置的 `domain_*` + `dns_*` 配对里推断规则组，并按名称字母序作为顺序；**能跑，但不建议长期依赖**
+- 如果不填，workflow 会自动从已配置的 `DOMAIN_*` + `DNS_*` 配对里推断规则组，并按名称字母序作为顺序；**能跑，但不建议长期依赖**
+- `RULESET_NAMES` 本身大小写兼容，但为了避免歧义，建议你也统一写大写
 
 #### 2) 每个规则组的域名规则集 URL
 
 ```text
-domain_google=https://example.com/a.yaml
+DOMAIN_GOOGLE=https://example.com/a.yaml
 https://example.com/b.list
 
-domain_microsoft=https://example.com/c.yaml
+DOMAIN_MICROSOFT=https://example.com/c.yaml
 ```
 
 - 一行一个 URL
@@ -104,8 +116,8 @@ domain_microsoft=https://example.com/c.yaml
 #### 3) 每个规则组对应的 DNS
 
 ```text
-dns_google=https://dns.google/dns-query https://cloudflare-dns.com/dns-query
-dns_microsoft=h3://dns.alidns.com/dns-query quic://dns.alidns.com https://doh.pub/dns-query
+DNS_GOOGLE=https://dns.google/dns-query https://cloudflare-dns.com/dns-query
+DNS_MICROSOFT=h3://dns.alidns.com/dns-query quic://dns.alidns.com https://doh.pub/dns-query
 ```
 
 - 支持多个 DNS server
@@ -114,17 +126,17 @@ dns_microsoft=h3://dns.alidns.com/dns-query quic://dns.alidns.com https://doh.pu
 #### 4) 可选默认 DNS
 
 ```text
-default_dns=https://cloudflare-dns.com/dns-query
+DEFAULT_DNS=https://cloudflare-dns.com/dns-query
 https://dns.google/dns-query
 ```
 
 - 可选；不填也能生成
 - 填了以后，会写在输出文件最前面，作为未命中域名规则时的默认 upstream
-- `default_dns` 会按空白分隔拆成多个 upstream，**最终总是一行一个**
+- `DEFAULT_DNS` 会按空白分隔拆成多个 upstream，**最终总是一行一个**
 - 也就是说：
   - 你在变量里分两行写 → 输出两行
   - 你在变量里同一行空格分隔写多个 upstream → 输出也会拆成多行
-- 这个规则只对 `default_dns` 生效；域名匹配规则里的多个 DNS 仍保持同一行
+- 这个规则只对 `DEFAULT_DNS` 生效；域名匹配规则里的多个 DNS 仍保持同一行
 
 ## 输出规则说明
 
@@ -161,12 +173,12 @@ dns:
   upstream_dns_file: /path/to/agh-mihomo-rules.txt
 ```
 
-如果你配置了 `default_dns`，输出文件前几行就会直接带默认 upstream；如果不配，默认 upstream 继续由 AdGuard Home 主配置决定。
+如果你配置了 `DEFAULT_DNS`，输出文件前几行就会直接带默认 upstream；如果不配，默认 upstream 继续由 AdGuard Home 主配置决定。
 
 ## 当前工作流做什么
 
-1. 读取 `ruleset_names`
-2. 读取每个 `domain_<name>` / `dns_<name>`
+1. 读取 `RULESET_NAMES`
+2. 读取每个 `DOMAIN_<NAME>` / `DNS_<NAME>`
 3. 下载所有规则集
 4. 提取支持的域名规则
 5. 合并并生成 `agh-mihomo-rules.txt`
@@ -185,7 +197,7 @@ dns:
 - `DOMAIN` 当前按 `DOMAIN-SUFFIX` 处理，不再保留“仅精确域名”的额外回退语义
 - 不做旧项目那种 `.cn` 子域名裁剪
 - 不按“中国/国外”内置固定 DNS 模板处理
-- 默认 DNS 只通过可选变量 `default_dns` 注入，不做内置预设
+- 默认 DNS 只通过可选变量 `DEFAULT_DNS` 注入，不做内置预设
 - 不引入额外的复杂配置文件格式
 
 如果后面要扩展，再加：
