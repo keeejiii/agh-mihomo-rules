@@ -1,0 +1,175 @@
+name: Generate AdGuard Home Rules
+
+on:
+  schedule:
+    - cron: '15 22 * * *'
+  workflow_dispatch:
+
+jobs:
+  build_and_release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    env:
+      RULESET_NAMES: ${{ vars.RULESET_NAMES }}
+      DEFAULT_DNS: ${{ vars.DEFAULT_DNS }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Export repository variables for configured rulesets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+          import uuid
+
+          ruleset_names = os.environ.get('RULESET_NAMES', '').strip()
+          if not ruleset_names:
+              raise SystemExit('RULESET_NAMES is required')
+
+          result = subprocess.run(
+              ['gh', 'api', f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/variables', '--paginate', '--slurp'],
+              check=True,
+              capture_output=True,
+              text=True,
+          )
+
+          variables = {}
+          for payload in json.loads(result.stdout):
+              for item in payload.get('variables', []):
+                  variables[item['name']] = item['value']
+
+          needed = {'RULESET_NAMES'}
+          optional = {'DEFAULT_DNS'}
+          for token in ruleset_names.replace(',', ' ').split():
+              upper = token.strip().upper()
+              needed.add(f'DOMAIN_{upper}')
+              needed.add(f'DNS_{upper}')
+
+          missing = [name for name in sorted(needed) if name not in variables and name != 'RULESET_NAMES']
+          if missing:
+              raise SystemExit('Missing repository variables: ' + ', '.join(missing))
+
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as fh:
+              for name in sorted(needed):
+                  value = ruleset_names if name == 'RULESET_NAMES' else variables[name]
+                  marker = f'EOF_{uuid.uuid4().hex}'
+                  fh.write(f'{name}<<{marker}\n{value}\n{marker}\n')
+              for name in sorted(optional):
+                  if name not in variables:
+                      continue
+                  marker = f'EOF_{uuid.uuid4().hex}'
+                  fh.write(f'{name}<<{marker}\n{variables[name]}\n{marker}\n')
+          PY
+
+      - name: Run conversion script
+        shell: bash
+        run: |
+          set -euo pipefail
+          python convert.py | tee update-summary.txt
+
+      - name: Add workflow summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## Rule generation summary'
+            echo
+            if [ -f update-summary.txt ]; then
+              echo '```text'
+              cat update-summary.txt
+              echo '```'
+            else
+              echo 'Conversion summary was not generated.'
+            fi
+            echo
+            if [ -f converted/agh-mihomo-rules.txt ]; then
+              echo '- Output file: converted/agh-mihomo-rules.txt'
+              echo "- Output bytes: $(wc -c < converted/agh-mihomo-rules.txt)"
+              echo "- Output lines: $(wc -l < converted/agh-mihomo-rules.txt)"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate generated rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s converted/agh-mihomo-rules.txt
+          wc -l converted/agh-mihomo-rules.txt
+
+      - name: Download current latest release asset
+        id: previous
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p previous-release
+          if gh release download latest --pattern agh-mihomo-rules.txt --dir previous-release --repo "$GITHUB_REPOSITORY"; then
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'No previous latest release asset found.'
+            echo 'found=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect changes
+        id: changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f previous-release/agh-mihomo-rules.txt ]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if cmp -s previous-release/agh-mihomo-rules.txt converted/agh-mihomo-rules.txt; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update latest tag
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag -f latest
+          git push -f origin refs/tags/latest
+
+      - name: Generate release notes
+        if: steps.changes.outputs.changed == 'true'
+        shell: bash
+        run: |
+          cat > release-notes.md <<EOF
+          Auto-generated AdGuard Home rules converted from mihomo domain rulesets.
+
+          File: agh-mihomo-rules.txt
+          Download: https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/agh-mihomo-rules.txt
+          Use with: dns.upstream_dns_file
+
+          Summary:
+          $(cat update-summary.txt)
+          EOF
+
+      - name: Publish latest release
+        if: steps.changes.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: agh-mihomo-rules
+          body_path: release-notes.md
+          files: converted/agh-mihomo-rules.txt
+          overwrite_files: true
+          make_latest: true

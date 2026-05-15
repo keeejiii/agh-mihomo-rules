@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+converted/
+previous-release/
+release-notes.md
+update-summary.txt
