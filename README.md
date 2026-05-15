@@ -61,31 +61,11 @@ dns:
 
 **Settings → Secrets and variables → Actions → Variables**
 
-### 变量约定
+### 配置原则
 
-统一使用 **全大写变量名**：
-
-- `RULESET_NAMES`
-- `DOMAIN_<NAME>`
-- `DNS_<NAME>`
-- `DEFAULT_DNS`
-
-这样最清楚，也避免 GitHub 页面把变量名显示成大写后产生歧义。
-
-### 最短配置示例
-
-```text
-RULESET_NAMES=GOOGLE,MICROSOFT
-
-DOMAIN_GOOGLE=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Google/Google.list
-DNS_GOOGLE=https://dns.google/dns-query https://cloudflare-dns.com/dns-query
-
-DOMAIN_MICROSOFT=https://github.com/blackmatrix7/ios_rule_script/blob/master/rule/Clash/Microsoft/Microsoft.yaml
-DNS_MICROSOFT=h3://dns.alidns.com/dns-query quic://dns.alidns.com
-
-DEFAULT_DNS=https://cloudflare-dns.com/dns-query
-https://dns.google/dns-query
-```
+- 统一使用 **全大写变量名**：`RULESET_NAMES`、`DOMAIN_<NAME>`、`DNS_<NAME>`、`DEFAULT_DNS`
+- 顶部那段“最短配置示例”就是推荐写法
+- `RULESET_NAMES` 决定规则组优先级顺序
 
 ### 每个变量怎么写
 
