@@ -40,18 +40,18 @@ jobs:
 
           variables = json.loads(os.environ.get('ALL_VARS_JSON') or '{}')
 
-          ruleset_names = (variables.get('RULESET_NAMES') or '').strip()
+          ruleset_names = (variables.get('ruleset_names') or '').strip()
           if not ruleset_names:
               inferred = sorted({
-                  key[len('DOMAIN_'):]
+                  key[len('domain_'):]
                   for key in variables
-                  if key.startswith('DOMAIN_') and (variables.get(key) or '').strip() and (variables.get(f"DNS_{key[len('DOMAIN_'):]}") or '').strip()
+                  if key.startswith('domain_') and (variables.get(key) or '').strip() and (variables.get(f"dns_{key[len('domain_'):]}") or '').strip()
               })
               if not inferred:
-                  raise SystemExit('Missing repository variable: RULESET_NAMES')
+                  raise SystemExit('Missing repository variable: ruleset_names')
               ruleset_names = ','.join(name.lower() for name in inferred)
-              print(f'RULESET_NAMES not set; inferred order: {ruleset_names}')
-              variables['RULESET_NAMES'] = ruleset_names
+              print(f'ruleset_names not set; inferred order: {ruleset_names}')
+              variables['ruleset_names'] = ruleset_names
 
           needed = []
           seen = set()
@@ -61,16 +61,16 @@ jobs:
                   seen.add(name)
                   needed.append(name)
 
-          add('RULESET_NAMES')
-          if 'DEFAULT_DNS' in variables and (variables.get('DEFAULT_DNS') or '').strip():
-              add('DEFAULT_DNS')
+          add('ruleset_names')
+          if 'default_dns' in variables and (variables.get('default_dns') or '').strip():
+              add('default_dns')
 
           for token in ruleset_names.replace(',', ' ').split():
-              upper = token.strip().upper()
-              add(f'DOMAIN_{upper}')
-              add(f'DNS_{upper}')
+              lower = token.strip().lower()
+              add(f'domain_{lower}')
+              add(f'dns_{lower}')
 
-          missing = [name for name in needed if name != 'DEFAULT_DNS' and not (variables.get(name) or '').strip()]
+          missing = [name for name in needed if name != 'default_dns' and not (variables.get(name) or '').strip()]
           if missing:
               raise SystemExit('Missing repository variables: ' + ', '.join(missing))
 
