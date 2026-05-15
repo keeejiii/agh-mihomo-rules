@@ -5,19 +5,33 @@
 
 把 mihomo / Clash 的域名规则集转换成 AdGuard Home `upstream_dns_file` 规则文件。
 
-这个项目适合两类用法：
+## 这个项目适合谁
 
-- **直接用作者当前生成好的规则文件**
-- **fork 后用 GitHub Actions Variables 生成你自己的分流规则**
+- **想直接拿现成规则用**：下载 latest release，丢给 AdGuard Home
+- **想自己生成规则**：fork 后配 GitHub Actions Variables，按自己的规则组和 DNS upstream 生成
 
-当前能力：
+## 5 秒看懂
 
-- 支持远程 `.list` / `.yaml` / `.yml`
-- 支持多个规则组，每组可绑定多个规则集 URL 和多个 DNS upstream
-- `RULESET_NAMES` 的顺序就是优先级顺序
-- `DOMAIN` 和 `DOMAIN-SUFFIX` 当前统一输出成 `[/example.com/]...`
-- 只有当产物变化时才更新 latest release
-- 每天北京时间 **06:15** 左右自动运行一次
+- 输入：mihomo / Clash 的 `.list`、`.yaml`、`.yml` 域名规则
+- 输出：AdGuard Home `upstream_dns_file`
+- 多组规则支持：`RULESET_NAMES` 控制优先级
+- 变量约定：统一使用 **全大写** `RULESET_NAMES`、`DOMAIN_<NAME>`、`DNS_<NAME>`、`DEFAULT_DNS`
+- 更新方式：每天北京时间 **06:15** 左右自动运行；只有产物变化时才更新 latest release
+
+### 最短配置示例
+
+```text
+RULESET_NAMES=GOOGLE,MICROSOFT
+
+DOMAIN_GOOGLE=https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/refs/heads/master/rule/Clash/Google/Google.list
+DNS_GOOGLE=https://dns.google/dns-query https://cloudflare-dns.com/dns-query
+
+DOMAIN_MICROSOFT=https://github.com/blackmatrix7/ios_rule_script/blob/master/rule/Clash/Microsoft/Microsoft.yaml
+DNS_MICROSOFT=h3://dns.alidns.com/dns-query quic://dns.alidns.com
+
+DEFAULT_DNS=https://cloudflare-dns.com/dns-query
+https://dns.google/dns-query
+```
 
 ## 直接使用
 
