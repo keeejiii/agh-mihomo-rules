@@ -25,6 +25,8 @@
 
 - `example.com`
 - `+.example.com`
+- `DOMAIN,example.com`
+- `DOMAIN-SUFFIX,example.com`
 
 其他格式忽略。
 

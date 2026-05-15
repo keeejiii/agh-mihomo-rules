@@ -18,6 +18,7 @@ HTML_LIKE_PREFIXES = (
 )
 VALID_GROUP_RE = re.compile(r'^[A-Za-z0-9_]+$')
 YAML_RULE_RE = re.compile(r'^\s*-\s*(DOMAIN-SUFFIX|DOMAIN)\s*,\s*([^,\s#]+)', re.IGNORECASE)
+LIST_MIHO_RULE_RE = re.compile(r'^(DOMAIN-SUFFIX|DOMAIN)\s*,\s*([^,\s#]+)', re.IGNORECASE)
 
 
 class ValidationError(RuntimeError):
@@ -180,12 +181,23 @@ def parse_list_rules(source: str, text: str) -> list[ParsedRule]:
         line = raw_line.strip()
         if not line or line.startswith('#'):
             continue
+
+        match = LIST_MIHO_RULE_RE.match(line)
+        if match:
+            matcher_name, domain_text = match.groups()
+            matcher = 'suffix' if matcher_name.upper() == 'DOMAIN-SUFFIX' else 'exact'
+            domain = normalize_domain(domain_text, source=source, line_number=line_number)
+            rules.append(ParsedRule(matcher, domain, source, line_number))
+            continue
+
         if line.startswith('+.'):
             domain = normalize_domain(line[2:], source=source, line_number=line_number)
             rules.append(ParsedRule('suffix', domain, source, line_number))
             continue
+
         if ',' in line:
             continue
+
         domain = normalize_domain(line, source=source, line_number=line_number)
         rules.append(ParsedRule('exact', domain, source, line_number))
 
