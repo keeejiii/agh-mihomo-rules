@@ -46,7 +46,7 @@ class DomainState:
 
 
 def load_group_names() -> list[str]:
-    raw = os.environ.get('ruleset_names', '')
+    raw = os.environ.get('RULESET_NAMES', '')
     names: list[str] = []
     seen: set[str] = set()
     for token in re.split(r'[\s,]+', raw.strip()):
@@ -55,16 +55,16 @@ def load_group_names() -> list[str]:
         name = token.strip()
         if not VALID_GROUP_RE.fullmatch(name):
             raise ValidationError(
-                'Invalid ruleset name {!r}. Use only letters, numbers, and underscores in ruleset_names.'.format(name)
+                'Invalid ruleset name {!r}. Use only letters, numbers, and underscores in RULESET_NAMES.'.format(name)
             )
-        normalized = name.lower()
+        normalized = name.upper()
         if normalized in seen:
-            raise ValidationError(f'Duplicate ruleset name in ruleset_names: {name}')
+            raise ValidationError(f'Duplicate ruleset name in RULESET_NAMES: {name}')
         seen.add(normalized)
         names.append(name)
 
     if not names:
-        raise ValidationError('ruleset_names is required, for example: google,microsoft')
+        raise ValidationError('RULESET_NAMES is required, for example: GOOGLE,MICROSOFT')
 
     return names
 
@@ -77,13 +77,13 @@ def split_non_empty_lines(raw: str) -> list[str]:
 def normalize_dns_servers(raw: str, *, group_name: str) -> str:
     tokens = raw.split()
     if not tokens:
-        raise ValidationError(f'dns_{group_name.lower()} is required and cannot be empty')
+        raise ValidationError(f'DNS_{group_name.upper()} is required and cannot be empty')
     return ' '.join(tokens)
 
 
 
 def load_default_dns() -> list[str]:
-    raw = os.environ.get('default_dns', '')
+    raw = os.environ.get('DEFAULT_DNS', '')
     if not raw.strip():
         return []
     return raw.split()
@@ -91,14 +91,14 @@ def load_default_dns() -> list[str]:
 
 
 def load_group_config(name: str) -> GroupConfig:
-    lower = name.lower()
-    sources_raw = os.environ.get(f'domain_{lower}', '')
-    dns_raw = os.environ.get(f'dns_{lower}', '')
+    upper = name.upper()
+    sources_raw = os.environ.get(f'DOMAIN_{upper}', '')
+    dns_raw = os.environ.get(f'DNS_{upper}', '')
 
     sources = split_non_empty_lines(sources_raw)
     if not sources:
         raise ValidationError(
-            f'domain_{lower} is required and must contain one or more .list/.yaml URLs, one per line'
+            f'DOMAIN_{upper} is required and must contain one or more .list/.yaml URLs, one per line'
         )
 
     dns_servers = normalize_dns_servers(dns_raw, group_name=name)
