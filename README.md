@@ -51,7 +51,7 @@ dns:
   upstream_dns_file: /opt/AdGuardHome/agh-mihomo-rules.txt
 ```
 
-> 如果你想要的是“作者当前这份规则”，到这里就够了。
+> 如果你只是想直接使用仓库当前发布的规则文件，到这里就够了。
 
 ## 自定义生成
 
@@ -201,11 +201,13 @@ RULESET_NAMES=GOOGLE,MICROSOFT
 当前版本刻意只做这些：
 
 - 只处理域名类规则
+- 只支持 `.list` 和 `.yaml` 输入
 - 只提取 `DOMAIN` 和 `DOMAIN-SUFFIX`
 - `DOMAIN` 当前按 `DOMAIN-SUFFIX` 处理
-- 不做旧项目那种 `.cn` 子域裁剪
-- 不内置“中国 / 国外”固定 DNS 模板
+- 不做 TLD 特判、裁剪或额外压缩
+- 不预设任何固定 DNS 分类模板
 - 默认 DNS 只通过 `DEFAULT_DNS` 注入
+- 规则组、规则源和 DNS 映射全部由 Variables 决定
 - 不引入额外复杂配置文件格式
 
 ## 第三方声明
