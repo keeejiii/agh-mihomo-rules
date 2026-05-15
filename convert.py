@@ -84,7 +84,9 @@ def normalize_dns_servers(raw: str, *, group_name: str) -> str:
 
 def load_default_dns() -> list[str]:
     raw = os.environ.get('DEFAULT_DNS', '')
-    return [line.strip() for line in raw.splitlines() if line.strip()]
+    if not raw.strip():
+        return []
+    return raw.split()
 
 
 

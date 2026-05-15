@@ -116,9 +116,13 @@ DEFAULT_DNS=https://cloudflare-dns.com/dns-query
 https://dns.google/dns-query
 ```
 
-- 一行一个 upstream
 - 可选；不填也能生成
 - 填了以后，会写在输出文件最前面，作为未命中域名规则时的默认 upstream
+- `DEFAULT_DNS` 会按空白分隔拆成多个 upstream，**最终总是一行一个**
+- 也就是说：
+  - 你在变量里分两行写 → 输出两行
+  - 你在变量里同一行空格分隔写多个 upstream → 输出也会拆成多行
+- 这个规则只对 `DEFAULT_DNS` 生效；域名匹配规则里的多个 DNS 仍保持同一行
 
 ## 输出规则说明
 
