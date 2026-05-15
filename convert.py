@@ -42,9 +42,7 @@ class ParsedRule:
 
 @dataclass
 class DomainState:
-    exact_dns: str | None = None
-    suffix_dns: str | None = None
-    subdomain_only_dns: str | None = None
+    dns_servers: str | None = None
 
 
 def load_group_names() -> list[str]:
@@ -239,18 +237,6 @@ def render_full(domain: str, dns_servers: str) -> list[str]:
 
 
 
-def render_exact_only(domain: str, dns_servers: str) -> list[str]:
-    return [f'[/{domain}/]{dns_servers}', f'[/*.{domain}/]#']
-
-
-
-def render_exact_with_subdomains(domain: str, exact_dns: str, subdomain_dns: str) -> list[str]:
-    if exact_dns == subdomain_dns:
-        return render_full(domain, exact_dns)
-    return [f'[/{domain}/]{exact_dns}', f'[/*.{domain}/]{subdomain_dns}']
-
-
-
 def convert(groups: list[GroupConfig], default_dns_lines: list[str]) -> tuple[list[str], dict[str, int]]:
     states: OrderedDict[str, DomainState] = OrderedDict()
     stats = {
@@ -260,9 +246,7 @@ def convert(groups: list[GroupConfig], default_dns_lines: list[str]) -> tuple[li
         'parsed_rules': 0,
         'accepted_exact': 0,
         'accepted_suffix': 0,
-        'accepted_subdomain_only': 0,
-        'skipped_exact_conflicts': 0,
-        'skipped_suffix_conflicts': 0,
+        'skipped_conflicts': 0,
     }
 
     for group in groups:
@@ -272,43 +256,21 @@ def convert(groups: list[GroupConfig], default_dns_lines: list[str]) -> tuple[li
                 stats['parsed_rules'] += 1
                 state = states.setdefault(rule.domain, DomainState())
 
+                if state.dns_servers is not None:
+                    stats['skipped_conflicts'] += 1
+                    continue
+
+                state.dns_servers = group.dns_servers
                 if rule.matcher == 'exact':
-                    if state.suffix_dns is not None or state.exact_dns is not None:
-                        stats['skipped_exact_conflicts'] += 1
-                        continue
-                    state.exact_dns = group.dns_servers
                     stats['accepted_exact'] += 1
-                    continue
-
-                if state.suffix_dns is not None:
-                    stats['skipped_suffix_conflicts'] += 1
-                    continue
-
-                if state.exact_dns is not None:
-                    if state.subdomain_only_dns is None:
-                        state.subdomain_only_dns = group.dns_servers
-                        stats['accepted_subdomain_only'] += 1
-                    else:
-                        stats['skipped_suffix_conflicts'] += 1
-                    continue
-
-                state.suffix_dns = group.dns_servers
-                stats['accepted_suffix'] += 1
+                else:
+                    stats['accepted_suffix'] += 1
 
     lines: list[str] = list(default_dns_lines)
     for domain, state in states.items():
-        if state.suffix_dns is not None:
-            lines.extend(render_full(domain, state.suffix_dns))
+        if state.dns_servers is None:
             continue
-
-        if state.exact_dns is None:
-            continue
-
-        if state.subdomain_only_dns is None:
-            lines.extend(render_exact_only(domain, state.exact_dns))
-            continue
-
-        lines.extend(render_exact_with_subdomains(domain, state.exact_dns, state.subdomain_only_dns))
+        lines.extend(render_full(domain, state.dns_servers))
 
     if not lines:
         raise ValidationError('No output rules were generated')
@@ -330,9 +292,7 @@ def main() -> int:
     print(
         'groups: {groups}, sources: {sources}, default dns lines: {default_dns_lines}, parsed rules: {parsed_rules}, '
         'accepted exact: {accepted_exact}, accepted suffix: {accepted_suffix}, '
-        'accepted subdomain-only: {accepted_subdomain_only}, '
-        'skipped exact conflicts: {skipped_exact_conflicts}, '
-        'skipped suffix conflicts: {skipped_suffix_conflicts}, '
+        'skipped conflicts: {skipped_conflicts}, '
         'output lines: {output_lines}'.format(
             output_lines=len(lines),
             **stats,

@@ -65,10 +65,9 @@ RULESET_NAMES=meta,google
 
 - 同一个域名的 `DOMAIN` / 精确规则冲突：先出现的规则组优先
 - 同一个域名的 `DOMAIN-SUFFIX` / 后缀规则冲突：先出现的规则组优先
-- 如果前面的规则组先声明了 `DOMAIN-SUFFIX,example.com`，后面的 `DOMAIN,example.com` 会被忽略
-- 如果前面的规则组先声明了 `DOMAIN,example.com`，后面的 `DOMAIN-SUFFIX,example.com` 只会接管 `*.example.com`，不会覆盖根域 `example.com`
+- 如果不同规则组里出现同一个域名，先出现的规则组优先，后面的同域名规则忽略
 
-这是为了尽量保留 mihomo 里 `DOMAIN` 和 `DOMAIN-SUFFIX` 的语义差异。
+当前版本里，`DOMAIN` 和 `DOMAIN-SUFFIX` 都按同一套域名后缀规则输出，不再额外区分精确匹配与子域名匹配。
 
 ## GitHub Actions 变量配置
 
@@ -135,17 +134,13 @@ https://dns.google/dns-query
 说明：
 
 - `[/example.com/]...`：匹配根域和子域
-- `[/*.example.com/]...`：只匹配子域，不匹配根域
-- `#`：回退到 AdGuard Home 的默认 upstream
 
-所以：
+所以现在：
 
 - `DOMAIN-SUFFIX,example.com` 会转成：`[/example.com/]...`
-- `DOMAIN,example.com` 会转成两条：
-  - `[/example.com/]...`
-  - `[/*.example.com/]#`
+- `DOMAIN,example.com` 也会直接转成：`[/example.com/]...`
 
-这样可以尽量保留“只匹配根域”的语义。
+也就是说，当前输出不再生成 `[/*.example.com/]#` 这类回退规则。
 
 ## 使用方式
 
@@ -182,6 +177,7 @@ dns:
 
 - 只支持远程 `.list` / `.yaml` / `.yml`
 - 只提取 `DOMAIN` 和 `DOMAIN-SUFFIX` 相关规则
+- `DOMAIN` 当前按 `DOMAIN-SUFFIX` 处理，不再保留“仅精确域名”的额外回退语义
 - 不做旧项目那种 `.cn` 子域名裁剪
 - 不按“中国/国外”内置固定 DNS 模板处理
 - 默认 DNS 只通过可选变量 `DEFAULT_DNS` 注入，不做内置预设
