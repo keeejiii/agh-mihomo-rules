@@ -1,18 +1,22 @@
 name: Generate AdGuard Home Rules
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '15 22 * * *'
-  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - '.github/workflows/update-rules.yml'
+      - 'convert.py'
+      - 'README.md'
 
 jobs:
   build_and_release:
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-    runs-on: ubuntu-latest
-    env:
-      RULESET_NAMES: ${{ vars.RULESET_NAMES }}
-      DEFAULT_DNS: ${{ vars.DEFAULT_DNS }}
 
     steps:
       - name: Checkout code
@@ -29,49 +33,48 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/variables" --paginate --slurp > variables.json
           python - <<'PY'
           import json
           import os
-          import subprocess
           import uuid
 
-          ruleset_names = os.environ.get('RULESET_NAMES', '').strip()
-          if not ruleset_names:
-              raise SystemExit('RULESET_NAMES is required')
-
-          result = subprocess.run(
-              ['gh', 'api', f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/variables', '--paginate', '--slurp'],
-              check=True,
-              capture_output=True,
-              text=True,
-          )
-
+          payloads = json.load(open('variables.json', 'r', encoding='utf-8'))
           variables = {}
-          for payload in json.loads(result.stdout):
+          for payload in payloads:
               for item in payload.get('variables', []):
                   variables[item['name']] = item['value']
 
-          needed = {'RULESET_NAMES'}
-          optional = {'DEFAULT_DNS'}
+          ruleset_names = variables.get('RULESET_NAMES', '').strip()
+          if not ruleset_names:
+              raise SystemExit('Missing repository variable: RULESET_NAMES')
+
+          needed = []
+          seen = set()
+
+          def add(name: str) -> None:
+              if name not in seen:
+                  seen.add(name)
+                  needed.append(name)
+
+          add('RULESET_NAMES')
+          if 'DEFAULT_DNS' in variables:
+              add('DEFAULT_DNS')
+
           for token in ruleset_names.replace(',', ' ').split():
               upper = token.strip().upper()
-              needed.add(f'DOMAIN_{upper}')
-              needed.add(f'DNS_{upper}')
+              add(f'DOMAIN_{upper}')
+              add(f'DNS_{upper}')
 
-          missing = [name for name in sorted(needed) if name not in variables and name != 'RULESET_NAMES']
+          missing = [name for name in needed if name != 'DEFAULT_DNS' and name not in variables]
           if missing:
               raise SystemExit('Missing repository variables: ' + ', '.join(missing))
 
           with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as fh:
-              for name in sorted(needed):
-                  value = ruleset_names if name == 'RULESET_NAMES' else variables[name]
+              for name in needed:
+                  value = variables.get(name, '')
                   marker = f'EOF_{uuid.uuid4().hex}'
                   fh.write(f'{name}<<{marker}\n{value}\n{marker}\n')
-              for name in sorted(optional):
-                  if name not in variables:
-                      continue
-                  marker = f'EOF_{uuid.uuid4().hex}'
-                  fh.write(f'{name}<<{marker}\n{variables[name]}\n{marker}\n')
           PY
 
       - name: Run conversion script
