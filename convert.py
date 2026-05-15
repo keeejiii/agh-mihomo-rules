@@ -105,7 +105,24 @@ def load_group_config(name: str) -> GroupConfig:
 
 
 
+def normalize_source(source: str) -> str:
+    parsed = urllib.parse.urlparse(source)
+    if parsed.scheme not in ('http', 'https'):
+        return source
+
+    if parsed.netloc == 'github.com':
+        parts = [part for part in parsed.path.split('/') if part]
+        if len(parts) >= 5 and parts[2] == 'blob':
+            owner, repo, _, ref = parts[:4]
+            rest = '/'.join(parts[4:])
+            return f'https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{rest}'
+
+    return source
+
+
+
 def fetch_text(source: str) -> str:
+    source = normalize_source(source)
     parsed = urllib.parse.urlparse(source)
     if parsed.scheme in ('http', 'https'):
         request = urllib.request.Request(source, headers={'User-Agent': 'agh-mihomo-rules/0.1'})

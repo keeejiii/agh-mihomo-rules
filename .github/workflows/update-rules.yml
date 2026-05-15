@@ -42,7 +42,16 @@ jobs:
 
           ruleset_names = (variables.get('RULESET_NAMES') or '').strip()
           if not ruleset_names:
-              raise SystemExit('Missing repository variable: RULESET_NAMES')
+              inferred = sorted({
+                  key[len('DOMAIN_'):]
+                  for key in variables
+                  if key.startswith('DOMAIN_') and (variables.get(key) or '').strip() and (variables.get(f"DNS_{key[len('DOMAIN_'):]}") or '').strip()
+              })
+              if not inferred:
+                  raise SystemExit('Missing repository variable: RULESET_NAMES')
+              ruleset_names = ','.join(name.lower() for name in inferred)
+              print(f'RULESET_NAMES not set; inferred order: {ruleset_names}')
+              variables['RULESET_NAMES'] = ruleset_names
 
           needed = []
           seen = set()

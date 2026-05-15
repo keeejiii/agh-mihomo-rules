@@ -80,6 +80,10 @@ GitHub Variables 不支持变量名里带冒号，所以这里不用 `domain:met
 RULESET_NAMES=meta,google
 ```
 
+- 推荐填写
+- 它决定规则组优先级顺序
+- 如果不填，workflow 会自动从已配置的 `DOMAIN_*` + `DNS_*` 配对里推断规则组，并按名称字母序作为顺序；**能跑，但不建议长期依赖**
+
 #### 2) 每个规则组的域名规则集 URL
 
 ```text
@@ -91,6 +95,8 @@ DOMAIN_GOOGLE=https://example.com/c.yaml
 
 - 一行一个 URL
 - 可以 `.yaml` 和 `.list` 混合
+- 支持 `raw.githubusercontent.com/...` 链接
+- 也兼容普通 GitHub blob 链接，workflow 运行时会自动转成 raw 下载地址
 
 #### 3) 每个规则组对应的 DNS
 
